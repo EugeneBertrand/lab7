@@ -1,6 +1,8 @@
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm';
 import mapboxgl from 'https://cdn.jsdelivr.net/npm/mapbox-gl@3.1.0/+esm';
 
+mapboxgl.accessToken = 'pk.eyJ1IjoiZXNiZXJ0cmFuZCIsImEiOiJjbXdiZTJ3a3QwMDVuMnlwem01MWtiOXh1In0.4bPEMT6EOL8sh_5Hr4Q4AA';
+
 if (!document.querySelector('#map svg')) {
   d3.select('#map').append('svg');
 }
@@ -9,11 +11,16 @@ const svg = d3.select('#map').select('svg');
 const timeSlider = document.getElementById('time-slider');
 const selectedTime = document.getElementById('selected-time');
 const anyTimeLabel = document.getElementById('any-time');
-const tokenSetup = document.getElementById('token-setup');
-const tokenInput = document.getElementById('mapbox-token');
-const tokenError = document.getElementById('token-error');
 
-let map;
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/streets-v12',
+  center: [-71.09415, 42.36027],
+  zoom: 11.5,
+  minZoom: 9,
+  maxZoom: 18,
+});
+
 let stations = [];
 let trips = [];
 let departuresByMinute = Array.from({ length: 1440 }, () => []);
@@ -114,18 +121,7 @@ function updateTimeDisplay() {
   updateScatterPlot(timeFilter);
 }
 
-function initializeMap(accessToken) {
-  mapboxgl.accessToken = accessToken;
-  map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/streets-v12',
-    center: [-71.09415, 42.36027],
-    zoom: 11.5,
-    minZoom: 9,
-    maxZoom: 18,
-  });
-
-  map.on('load', async () => {
+map.on('load', async () => {
     const bikeLaneStyle = {
       'line-color': '#32a852',
       'line-width': 3,
@@ -181,34 +177,11 @@ function initializeMap(accessToken) {
 
     timeSlider.addEventListener('input', updateTimeDisplay);
     updateTimeDisplay();
-  });
+});
 
-  map.on('style.load', () => {
-    const svgRoot = d3.select('#map').select('svg');
-    if (svgRoot.empty()) {
-      d3.select('#map').append('svg');
-    }
-  });
-}
-
-const savedToken = localStorage.getItem('mapboxAccessToken');
-if (savedToken) {
-  tokenSetup.hidden = true;
-  initializeMap(savedToken);
-} else {
-  tokenInput.focus();
-}
-
-tokenSetup.addEventListener('submit', (event) => {
-  event.preventDefault();
-  const accessToken = tokenInput.value.trim();
-
-  if (!accessToken.startsWith('pk.')) {
-    tokenError.textContent = 'Use a Mapbox public token beginning with “pk.”';
-    return;
+map.on('style.load', () => {
+  const svgRoot = d3.select('#map').select('svg');
+  if (svgRoot.empty()) {
+    d3.select('#map').append('svg');
   }
-
-  localStorage.setItem('mapboxAccessToken', accessToken);
-  tokenSetup.hidden = true;
-  initializeMap(accessToken);
 });
